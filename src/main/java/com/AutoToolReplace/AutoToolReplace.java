@@ -1,21 +1,19 @@
 package com.AutoToolReplace;
 
-import net.minecraft.entity.player.PlayerInventory;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerDestroyItemEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-//import org.apache.logging.log4j.LogManager;
-//import org.apache.logging.log4j.Logger;
-import net.minecraft.item.*;
-import java.util.List;
-import java.util.stream.Collectors;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod("autotoolreplace")
 public class AutoToolReplace {
-	// Directly reference a log4j logger.
-	// private static final Logger LOGGER = LogManager.getLogger();
 
 	public AutoToolReplace() {
 		// Register ourselves for server and other game events we are interested in
@@ -24,36 +22,25 @@ public class AutoToolReplace {
 
 	@SubscribeEvent
 	public void onItemBreak(PlayerDestroyItemEvent itemEvent) {
-		ItemStack borkedItem = itemEvent.getOriginal();
-		PlayerInventory pInv = itemEvent.getPlayer().inventory;
-		if (borkedItem.getToolTypes() != null && borkedItem.getToolTypes().size() > 0) {
-			List<ItemStack> sameTools = pInv.mainInventory.stream()
-					.filter(x -> x.getToolTypes() != null && x.getToolTypes().size() > 0
-							&& x.getToolTypes().toArray()[0] == borkedItem.getToolTypes().toArray()[0])
-					.collect(Collectors.toList());
-
-			List<ItemStack> sameMatTool = null;
-
-			if (sameTools != null && sameTools.size() > 0) {
-				sameMatTool = sameTools.stream().filter(x -> x.getTranslationKey() == borkedItem.getTranslationKey())
-						.collect(Collectors.toList());
-			} else {
-				return;
-			}
-
-			int newToolSlot = -1;
+		Item borkedItem = itemEvent.getOriginal().getItem();
+		Inventory pInv = itemEvent.getPlayer().getInventory();
+		List<ItemStack> sameTools = pInv.items.stream().filter(x -> x.getItem().getClass() == borkedItem.getClass())
+				.collect(Collectors.toList());
+		if (sameTools != null && sameTools.size() > 0) {
+			List<ItemStack> sameMatTool = sameTools.stream()
+					.filter(x -> x.getDescriptionId() == borkedItem.getDescriptionId()).collect(Collectors.toList());
+			ItemStack newTool = null;
 
 			if (sameMatTool != null && sameMatTool.size() > 0) {
-				newToolSlot = pInv.getSlotFor(sameMatTool.get(0));
-
+				newTool = sameMatTool.get(0);
 			} else {
-				newToolSlot = pInv.getSlotFor(sameTools.get(0));
+				newTool = sameTools.get(0);
 			}
 
-			if (newToolSlot != -1) {
-				ItemStack newTool = pInv.getStackInSlot(newToolSlot);
-				itemEvent.getPlayer().setItemStackToSlot(net.minecraft.inventory.EquipmentSlotType.MAINHAND, newTool);
-				pInv.removeStackFromSlot(newToolSlot);
+			if (newTool != null) {
+				//Doing it this way to have inventory update properly
+				pInv.add(pInv.selected, newTool);
+				pInv.removeItem(newTool);
 			}
 		}
 	}
