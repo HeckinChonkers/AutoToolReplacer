@@ -23,7 +23,7 @@ public class AutoToolReplace {
 	@SubscribeEvent
 	public void onItemBreak(PlayerDestroyItemEvent itemEvent) {
 		Item borkedItem = itemEvent.getOriginal().getItem();
-		Inventory pInv = itemEvent.getPlayer().getInventory();
+		Inventory pInv = itemEvent.getEntity().getInventory();
 		List<ItemStack> sameTools = pInv.items.stream().filter(x -> x.getItem().getClass() == borkedItem.getClass())
 				.collect(Collectors.toList());
 		if (sameTools != null && sameTools.size() > 0) {
